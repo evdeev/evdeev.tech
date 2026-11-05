@@ -1,0 +1,80 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const page = await getEntry('pages', 'notes');
+
+if (!page) {
+	throw new Error('Не найден файл src/content/pages/notes.md');
+}
+
+const notes = (await getCollection('notes', ({ data }) => !data.draft && data.status !== 'draft'))
+	.sort((a, b) => (b.data.created?.getTime() ?? 0) - (a.data.created?.getTime() ?? 0));
+
+const { Content } = await render(page);
+const formatDate = (date?: Date) => date
+	? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+	: '';
+---
+
+<BaseLayout title={page.data.title} description={page.data.description}>
+	<section class="content page-intro">
+		<h1>{page.data.title}</h1>
+		<Content />
+	</section>
+
+	<ul class="notes-list">
+		{notes.map((note) => (
+			<li>
+				<a href={`/notes/${note.data.slug ?? note.id}/`}>
+					<strong>{note.data.title}</strong>
+					{note.data.intro && <span>{note.data.intro}</span>}
+					{note.data.created && <time datetime={note.data.created.toISOString()}>{formatDate(note.data.created)}</time>}
+				</a>
+			</li>
+		))}
+	</ul>
+</BaseLayout>
+
+<style>
+	.page-intro {
+		margin-bottom: 52px;
+	}
+
+	.notes-list {
+		display: grid;
+		gap: 0;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.notes-list li {
+		border-top: 1px solid #e4e1dc;
+	}
+
+	.notes-list li:last-child {
+		border-bottom: 1px solid #e4e1dc;
+	}
+
+	.notes-list a {
+		display: grid;
+		gap: 8px;
+		padding-block: 24px;
+		text-decoration: none;
+	}
+
+	.notes-list strong {
+		font-size: 1.25rem;
+		line-height: 1.3;
+	}
+
+	.notes-list span {
+		color: #55514c;
+	}
+
+	.notes-list time {
+		font-size: 0.875rem;
+		color: #7b756e;
+	}
+</style>

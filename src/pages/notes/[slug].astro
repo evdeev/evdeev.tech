@@ -1,0 +1,59 @@
+---
+import type { GetStaticPaths } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export const getStaticPaths = (async () => {
+	const notes = await getCollection('notes', ({ data }) => !data.draft && data.status !== 'draft');
+
+	return notes.map((note) => ({
+		params: { slug: note.data.slug ?? note.id },
+		props: { note },
+	}));
+}) satisfies GetStaticPaths;
+
+interface Props {
+	note: CollectionEntry<'notes'>;
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+const date = note.data.created
+	? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(note.data.created)
+	: '';
+---
+
+<BaseLayout title={note.data.title} description={note.data.description}>
+	<article>
+		<a class="back" href="/notes">← Все заметки</a>
+		<header class="note-header">
+			<h1>{note.data.title}</h1>
+			{note.data.created && <time datetime={note.data.created.toISOString()}>{date}</time>}
+		</header>
+		<div class="content">
+			<Content />
+		</div>
+	</article>
+</BaseLayout>
+
+<style>
+	.back {
+		display: inline-block;
+		margin-bottom: 40px;
+	}
+
+	.note-header {
+		margin-bottom: 48px;
+		padding: 0 0 28px;
+		border-bottom: 1px solid #e4e1dc;
+	}
+
+	.note-header h1 {
+		font-size: clamp(2rem, 7vw, 3.75rem);
+	}
+
+	.note-header time {
+		color: #7b756e;
+	}
+</style>
